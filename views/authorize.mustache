@@ -23,7 +23,8 @@
     }
   }
 
-  // Polling function: Checks /status every 5s to see if authorized
+  // Polling function: Checks /status every currentInterval ms to see if authorized
+  let currentInterval = {{interval}} * 1000;
   function checkStatus() {
     fetch('/status')
       .then(response => response.json())
@@ -70,10 +71,18 @@
               document.getElementById('status').innerHTML = html;
               hljs.highlightAll();
             });
+        } else if (data.status === 'error') {
+          document.getElementById('status').innerHTML = 'Authorization error occurred.';
         } else {
-          // Continue polling if still pending
-          setTimeout(checkStatus, 5000);
+          if (data.interval) {
+            currentInterval = data.interval * 1000;
+          }
+          setTimeout(checkStatus, currentInterval);
         }
+      })
+      .catch(err => {
+        console.error('Status check failed:', err);
+        setTimeout(checkStatus, currentInterval);
       });
   }
 
