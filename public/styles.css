@@ -35,4 +35,39 @@ pre {
   border-radius: 5px;
   overflow: auto;
   text-align: left;
+}
+
+.tv-frame {
+  position: relative;
+  width: 400px;
+  height: 300px;
+  margin: 40px auto;
+  background: #000;
+  border-radius: 10px;
+  border: 20px solid #333;
+  border-bottom: 40px solid #333;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+}
+.tv-frame:before {
+  content: '';
+  position: absolute;
+  bottom: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 20px;
+  background: #444;
+  border-radius: 10px;
+}
+.tv-screen {
+  width: 100%;
+  height: 100%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tv-frame img {
+  max-width: 80%;
+  max-height: 80%;
 } 

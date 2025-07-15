@@ -6,7 +6,11 @@
 <body>
 <h1>Authorize Device</h1>
 <p>Please scan the QR code or enter the code: {{user_code}}</p>
-<img src="{{qrCodeDataURL}}" alt="QR Code">
+<div class="tv-frame">
+  <div class="tv-screen">
+    <img src="{{qrCodeDataURL}}" alt="QR Code">
+  </div>
+</div>
 <p>Verification URI: <a href="{{verification_uri_complete}}" target="_blank">{{verification_uri_complete}}</a></p>
 <div id="status">Waiting for authorization...</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js"></script>
