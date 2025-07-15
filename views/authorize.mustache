@@ -1,0 +1,84 @@
+<html>
+<head>
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
+</head>
+<body>
+<h1>Authorize Device</h1>
+<p>Please scan the QR code or enter the code: {{user_code}}</p>
+<img src="{{qrCodeDataURL}}" alt="QR Code">
+<p>Verification URI: <a href="{{verification_uri_complete}}" target="_blank">{{verification_uri_complete}}</a></p>
+<div id="status">Waiting for authorization...</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js"></script>
+<script>
+  // Function to decode JWT (base64url decode + JSON parse)
+  function decodeJWT(token) {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      const decode = (str) => JSON.parse(atob(str.replace(/-/g, '+').replace(/_/g, '/')));
+      return { header: decode(parts[0]), payload: decode(parts[1]) };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Polling function: Checks /status every 5s to see if authorized
+  function checkStatus() {
+    fetch('/status')
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'authorized') {
+          fetch('/userinfo')
+            .then(res => {
+              if (!res.ok) throw new Error('Failed to fetch user info');
+              return res.json();
+            })
+            .then(info => {
+              let html = '<h3>Raw Tokens:</h3><pre><code class="language-json">' + JSON.stringify(data.token, null, 2) + '</code></pre>';
+              html += '<h3>Decoded Tokens:</h3>';
+              let accessDecoded = false;
+              for (let key in data.token) {
+                if (key.endsWith('_token') && typeof data.token[key] === 'string') {
+                  const decoded = decodeJWT(data.token[key]);
+                  if (decoded) {
+                    html += `<h4>${key}:</h4><pre><code class="language-json">` + JSON.stringify(decoded, null, 2) + `</code></pre>`;
+                    if (key === 'access_token') accessDecoded = true;
+                  }
+                }
+              }
+              if (!accessDecoded && data.token.access_token) {
+                html += `<h4>access_token (opaque):</h4><p>Claims retrieved via /userinfo endpoint using the access token.</p><pre><code class="language-json">` + JSON.stringify(info, null, 2) + `</code></pre>`;
+              }
+              html += '<p><a href="/logout">Logout</a></p>';
+              document.getElementById('status').innerHTML = html;
+              hljs.highlightAll();
+            })
+            .catch(err => {
+              let html = '<h3>Raw Tokens:</h3><pre><code class="language-json">' + JSON.stringify(data.token, null, 2) + '</code></pre>';
+              html += '<h3>Decoded Tokens:</h3>';
+              for (let key in data.token) {
+                if (key.endsWith('_token') && typeof data.token[key] === 'string') {
+                  const decoded = decodeJWT(data.token[key]);
+                  if (decoded) {
+                    html += `<h4>${key}:</h4><pre><code class="language-json">` + JSON.stringify(decoded, null, 2) + `</code></pre>`;
+                  }
+                }
+              }
+              html += `<p>Error fetching user profile: ${err.message}</p>`;
+              html += '<p><a href="/logout">Logout</a></p>';
+              document.getElementById('status').innerHTML = html;
+              hljs.highlightAll();
+            });
+        } else {
+          // Continue polling if still pending
+          setTimeout(checkStatus, 5000);
+        }
+      });
+  }
+
+  // Start polling on page load
+  checkStatus();
+</script>
+</body>
+</html> 

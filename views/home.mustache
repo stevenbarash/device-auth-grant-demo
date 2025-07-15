@@ -1,0 +1,15 @@
+<html>
+<head>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<h1>OIDC Device Flow Demo</h1>
+{{#isAuthorized}}
+<p>You are authorized.</p>
+<a href="/logout">Logout</a>
+{{/isAuthorized}}
+{{^isAuthorized}}
+<a href="/authorize">Start Authorization</a>
+{{/isAuthorized}}
+</body>
+</html> 
