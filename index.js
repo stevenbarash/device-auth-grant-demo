@@ -1,12 +1,12 @@
-// This application implements the OAuth 2.0 Device Authorization Grant flow.
+// This application implements the OAuth 2.0 Device Authorization Grant flow with Descope.
 // Overview of the flow:
-// 1. The device (this app) requests a device code from the authorization server via /oauth/device/code.
+// 1. The device (this app) requests a device code from the authorization server via /oauth2/v1/device.
 // 2. The server responds with a device_code, user_code, verification_uri_complete, and polling interval.
 // 3. The app displays the user_code and a QR code linking to the verification_uri_complete.
 // 4. The user, on a separate device (e.g., phone or laptop), visits the verification URI, logs in, and enters the user_code to grant access.
-// 5. Meanwhile, this app polls the /oauth/token endpoint periodically using the device_code.
+// 5. Meanwhile, this app polls the /oauth2/v1/token endpoint periodically using the device_code.
 // 6. Once the user authorizes, the server issues an access_token (and optionally id_token, refresh_token) in the polling response.
-// 7. The app stores the token and can use it to call protected APIs, e.g., /userinfo to fetch user profile.
+// 7. The app stores the token and can use it to call protected APIs, e.g., /oauth2/v1/userinfo to fetch user profile.
 // 8. For logout, the app revokes the refresh_token if present and clears state.
 
 // Load environment variables from .env file
@@ -38,13 +38,13 @@ app.set('views', __dirname + '/views');
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Configuration loaded from environment variables (.env file)
-// ISSUER_DOMAIN: The domain of your OIDC issuer (e.g., your-domain.com)
+// ISSUER_DOMAIN: The domain of your OIDC issuer (e.g., api.descope.org/P2wMZ1KltTPqNDeoVmQaSonBKXJR)
 // CLIENT_ID: Client ID of the application
-// SCOPE: Requested scopes (openid profile email offline_access for ID token, user info, and refresh token)
+// SCOPE: Requested scopes (openid profile email for ID token and user info)
 // AUDIENCE: Optional API audience for access token (if calling a protected API)
-const ISSUER_DOMAIN = process.env.ISSUER_DOMAIN || 'your-domain.com';
+const ISSUER_DOMAIN = process.env.ISSUER_DOMAIN || 'api.descope.org/P2wMZ1KltTPqNDeoVmQaSonBKXJR';
 const CLIENT_ID = process.env.CLIENT_ID || 'your-client-id';
-const SCOPE = process.env.SCOPE || 'openid profile email offline_access';
+const SCOPE = process.env.SCOPE || 'openid profile email';
 const AUDIENCE = process.env.AUDIENCE;
 
 // Global variables:
@@ -73,7 +73,7 @@ app.get('/authorize', async (req, res) => {
     if (AUDIENCE) {
       codeRequestData.audience = AUDIENCE;
     }
-    const response = await axios.post(`https://${ISSUER_DOMAIN}/oauth/device/code`, codeRequestData);
+    const response = await axios.post(`https://api.descope.org/oauth2/v1/device`, codeRequestData);
     const { device_code, user_code, verification_uri_complete, interval } = response.data;
     await set('device_code', device_code);
     await set('polling_interval', interval);
@@ -94,7 +94,7 @@ function startPolling() {
   pollingInterval = setInterval(async () => {
     try {
       // Send polling request to token endpoint
-      const response = await axios.post(`https://${ISSUER_DOMAIN}/oauth/token`, {
+      const response = await axios.post(`https://api.descope.org/oauth2/v1/token`, {
         grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
         device_code: deviceCode,
         client_id: CLIENT_ID,
@@ -136,7 +136,7 @@ app.get('/status', async (req, res) => {
     return res.json({ status });
   }
   try {
-    const response = await axios.post(`https://${ISSUER_DOMAIN}/oauth/token`, {
+    const response = await axios.post(`https://api.descope.org/oauth2/v1/token`, {
       grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
       device_code,
       client_id: CLIENT_ID,
@@ -173,7 +173,7 @@ app.get('/userinfo', async (req, res) => {
   }
   try {
     // Call /userinfo endpoint with access token
-    const response = await axios.get(`https://${ISSUER_DOMAIN}/userinfo`, {
+    const response = await axios.get(`https://api.descope.org/oauth2/v1/userinfo`, {
       headers: {
         Authorization: `Bearer ${token.access_token}`
       }
@@ -191,7 +191,7 @@ app.get('/logout', async (req, res) => {
   if (token && token.refresh_token) {
     try {
       // Revoke refresh token to invalidate session
-      await axios.post(`https://${ISSUER_DOMAIN}/oauth/revoke`, {
+      await axios.post(`https://api.descope.org/oauth2/v1/revoke`, {
         client_id: CLIENT_ID,
         token: token.refresh_token
       });
